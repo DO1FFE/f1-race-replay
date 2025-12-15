@@ -560,6 +560,63 @@ class RaceProgressBarComponent(BaseComponent):
         )
         arcade.draw_rect_filled(bg_rect, self.COLORS["background"])
         arcade.draw_rect_outline(bg_rect, self.COLORS["progress_border"], 2)
+        
+        # 2. Draw progress fill
+        if self._total_frames > 0:
+            progress_ratio = min(1.0, current_frame / self._total_frames)
+            progress_width = progress_ratio * self._bar_width
+            if progress_width > 0:
+                progress_rect = arcade.XYWH(
+                    self._bar_left + progress_width / 2,
+                    bar_center_y,
+                    progress_width,
+                    self.height - 4
+                )
+                arcade.draw_rect_filled(progress_rect, self.COLORS["progress_fill"])
+        
+        # 3. Draw lap markers (vertical lines)
+        if self._total_laps > 1:
+            for lap in range(1, self._total_laps + 1):
+                # Approximate frame for lap transition
+                lap_frame = int((lap / self._total_laps) * self._total_frames)
+                lap_x = self._frame_to_x(lap_frame)
+                
+                # Draw subtle vertical line
+                arcade.draw_line(
+                    lap_x, self.bottom + 2,
+                    lap_x, self.bottom + self.height - 2,
+                    self.COLORS["lap_marker"], 1
+                )
+                
+                # Draw lap number below for major laps (every 5 laps or first/last)
+                if lap == 1 or lap == self._total_laps or lap % 10 == 0:
+                    arcade.Text(
+                        str(lap),
+                        lap_x, self.bottom - 4,
+                        self.COLORS["text"], 9,
+                        anchor_x="center", anchor_y="top"
+                    ).draw()
+        
+        # 4. Draw event markers
+        for event in self._events:
+            event_x = self._frame_to_x(event.get("frame", 0))
+            self._draw_event_marker(event, event_x, bar_center_y)
+        
+        # 5. Draw current position indicator (playhead)
+        current_x = self._frame_to_x(current_frame)
+        arcade.draw_line(
+            current_x, self.bottom - 2,
+            current_x, self.bottom + self.height + 2,
+            self.COLORS["current_position"], 3
+        )
+        
+        # 6. Draw hover tooltip if applicable
+        if self._hover_event:
+            self._draw_tooltip(window, self._hover_event)
+            
+        # 7. Draw legend
+        self._draw_legend(window)
+            
     def _draw_event_marker(self, event: dict, x: float, center_y: float):
         """Draw a single event marker based on type."""
         event_type = event.get("type", "")
